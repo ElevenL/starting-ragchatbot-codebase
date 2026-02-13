@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-一个用于查询课程材料的 RAG（检索增强生成）系统。使用 ChromaDB 进行向量存储，Anthropic Claude 进行 AI 生成，FastAPI 作为后端。
+一个用于查询课程材料的 RAG（检索增强生成）系统。使用 ChromaDB 进行向量存储，智谱AI GLM 进行 AI 生成，FastAPI 作为后端。
 
 ## 常用命令
 
@@ -65,7 +65,7 @@ docs/*.txt → DocumentProcessor.process_course_document()
 - `CHUNK_SIZE=800`, `CHUNK_OVERLAP=100` - 文本分块参数
 - `MAX_RESULTS=5` - 搜索结果数量限制
 - `MAX_HISTORY=2` - 对话上下文长度
-- `ANTHROPIC_MODEL="claude-sonnet-4-20250514"`
+- `GLM_MODEL="glm-4-flash"` - 智谱AI模型
 
 ### 文档格式要求
 

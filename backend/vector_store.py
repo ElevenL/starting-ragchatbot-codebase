@@ -1,9 +1,28 @@
 import chromadb
 from chromadb.config import Settings
+from chromadb.api.types import EmbeddingFunction, Documents, Embeddings
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from models import Course, CourseChunk
-from sentence_transformers import SentenceTransformer
+from zhipuai import ZhipuAI
+import os
+
+
+class ZhipuEmbeddingFunction(EmbeddingFunction):
+    """Custom embedding function using ZhipuAI's embedding-3 model"""
+
+    def __init__(self, api_key: str, model: str = "embedding-3"):
+        self.client = ZhipuAI(api_key=api_key)
+        self.model = model
+
+    def __call__(self, input: Documents) -> Embeddings:
+        """Generate embeddings for a list of documents"""
+        response = self.client.embeddings.create(
+            model=self.model,
+            input=input
+        )
+        # Extract embeddings from response
+        return [item.embedding for item in response.data]
 
 @dataclass
 class SearchResults:
@@ -33,7 +52,7 @@ class SearchResults:
 
 class VectorStore:
     """Vector storage using ChromaDB for course content and metadata"""
-    
+
     def __init__(self, chroma_path: str, embedding_model: str, max_results: int = 5):
         self.max_results = max_results
         # Initialize ChromaDB client
@@ -41,10 +60,12 @@ class VectorStore:
             path=chroma_path,
             settings=Settings(anonymized_telemetry=False)
         )
-        
-        # Set up sentence transformer embedding function
-        self.embedding_function = chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=embedding_model
+
+        # Set up ZhipuAI embedding function
+        api_key = os.getenv("GLM_API_KEY", "")
+        self.embedding_function = ZhipuEmbeddingFunction(
+            api_key=api_key,
+            model=embedding_model
         )
         
         # Create collections for different types of data
@@ -160,10 +181,13 @@ class VectorStore:
         )
     
     def add_course_content(self, chunks: List[CourseChunk]):
-        """Add course content chunks to the vector store"""
+        """Add course content chunks to the vector store in batches"""
         if not chunks:
             return
-        
+
+        # ZhipuAI embedding API limit: max 64 items per request
+        BATCH_SIZE = 50
+
         documents = [chunk.content for chunk in chunks]
         metadatas = [{
             "course_title": chunk.course_title,
@@ -172,12 +196,18 @@ class VectorStore:
         } for chunk in chunks]
         # Use title with chunk index for unique IDs
         ids = [f"{chunk.course_title.replace(' ', '_')}_{chunk.chunk_index}" for chunk in chunks]
-        
-        self.course_content.add(
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
+
+        # Add in batches to avoid API limit
+        for i in range(0, len(documents), BATCH_SIZE):
+            batch_docs = documents[i:i + BATCH_SIZE]
+            batch_metas = metadatas[i:i + BATCH_SIZE]
+            batch_ids = ids[i:i + BATCH_SIZE]
+
+            self.course_content.add(
+                documents=batch_docs,
+                metadatas=batch_metas,
+                ids=batch_ids
+            )
     
     def clear_all_data(self):
         """Clear all data from both collections"""

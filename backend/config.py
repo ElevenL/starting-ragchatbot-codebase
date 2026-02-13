@@ -8,12 +8,12 @@ load_dotenv()
 @dataclass
 class Config:
     """Configuration settings for the RAG system"""
-    # Anthropic API settings
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
+    # GLM API settings (智谱AI)
+    GLM_API_KEY: str = os.getenv("GLM_API_KEY", "")
+    GLM_MODEL: str = "glm-4"
     
     # Embedding model settings
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_MODEL: str = "embedding-3"
     
     # Document processing settings
     CHUNK_SIZE: int = 800       # Size of text chunks for vector storage
